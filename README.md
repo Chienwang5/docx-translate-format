@@ -1,75 +1,75 @@
-## 项目简介
+## Project Overview
 
-`docx-format-translate` 是一个用于对 Microsoft Word `.docx` 文件进行“带格式”翻译的轻量级 Python 库。
+`docx-format-translate` is a lightweight Python library for translating Microsoft Word `.docx` files while preserving formatting.
 
-它的目标是在不破坏原始文档格式（例如：字体、粗体、斜体、段落样式、编号/项目符号、表格样式等）的前提下，将文档中的文本按句子进行逐句翻译，适合机器翻译或自定义翻译函数接入。
+The library is designed to translate document text sentence-by-sentence without breaking the original document formatting (for example: fonts, bold/italic, paragraph styles, numbered/bulleted lists, table styles, etc.). It is suitable for integrating machine translation services or custom translation functions.
 
-## 主要特性
+## Key Features
 
-- 保留原始 `.docx` 的文本格式与排版。 
-- 按“句子到句子”（single-sentence-to-single-sentence） 的方式调用用户提供的翻译函数，便于整合任何翻译 API（本地模型、云服务或自定义规则）。
-- 支持多语言翻译（源语言与目标语言由用户的翻译函数决定）。
-- 简单易用的函数式接口，适合批量或交互式使用。
+- Preserve original `.docx` text formatting and layout.
+- Call a user-provided translation function on a single-sentence-to-single-sentence basis, making it easy to integrate any translation API (local models, cloud services, or custom rules).
+- Support multiple languages (source and target languages are determined by the user's translation function).
+- Simple and easy functional API, suitable for batch or interactive use.
 
-## 安装
+## Installation
 
-使用 pip 安装：
+Install via pip:
 
 ```powershell
 pip install docx-format-translate
 ```
 
-## 快速开始
+## Quick Start
 
-下面是最小的使用示例，展示如何把一个源文件 `src_path` 翻译并输出到 `dst_path`。示例中的 `translate_en2cn` 是一个单句到单句的翻译函数，占位返回原文，你可以将其替换为调用任意翻译 API 的实现。
+Here is a minimal example showing how to translate a source file `src_path` and write the result to `dst_path`. The `translate_en2cn` function in the example is a placeholder that performs sentence-to-sentence translation and currently returns the input unchanged — replace it with a call to any translation API.
 
 ```python
 from docx_format_translate import translate_docx_with_format
 
 def translate_en2cn(text):
-		# text: 单句字符串（源语言）
-		# 应返回对应的目标语言字符串
-		return text
+    # text: a single sentence (source language)
+    # should return the corresponding translated sentence (target language)
+    return text
 
 src_path = "example_src.docx"
 dst_path = "example_dst.docx"
 translate_docx_with_format(src_path, dst_path, translate_en2cn)
 ```
 
-示例说明：
-- `translate_docx_with_format(src_path, dst_path, translate_fn)`：
-	- src_path: 源 docx 文件路径（字符串）。
-	- dst_path: 目标 docx 文件路径（字符串），函数会把翻译后的内容写入此文件。若文件存在会被覆盖。
-	- translate_fn: 用户提供的翻译函数，签名为 `f(text: str) -> str`，针对传入的单句返回翻译后的单句。
+Usage notes:
+- `translate_docx_with_format(src_path, dst_path, translate_fn)`:
+  - `src_path`: source .docx file path (string).
+  - `dst_path`: destination .docx file path (string). The function writes the translated content to this file. If the file exists it will be overwritten.
+  - `translate_fn`: a user-provided translation function with signature `f(text: str) -> str`, which returns the translated sentence for each input sentence.
 
-库不会对翻译函数的内部实现做限制；你可以在 `translate_fn` 中调用任意第三方翻译 API（例如：OpenAI、Bing、DeepL、Google、或本地模型）。
+The library does not restrict how the translation function is implemented; you may call any third-party translation API inside `translate_fn` (for example: OpenAI, Bing, DeepL, Google, or a local model).
 
-## 翻译函数约定（契约）
+## Translation Function Contract
 
-- 输入：单个句子字符串（str），已从文档中按句子分割后提供（库会尽量保持句子边界）。
-- 输出：对应的目标语言字符串（str），由用户保证语义对应且适当保留必要标点。 
-- 错误处理：若翻译函数抛出异常，库将按配置（默认：跳过该句并在日志中记录）处理。建议在翻译函数中做重试与错误捕获。
+- Input: a single sentence string (`str`) that the library provides after attempting to split document text into sentences.
+- Output: the corresponding translated sentence string (`str`). The user is responsible for semantic correctness and preserving necessary punctuation.
+- Error handling: if the translation function raises an exception, the library will handle it according to configuration (default: skip the sentence and log the error). It is recommended to implement retries and error handling inside the translation function.
 
-## 注意事项与边界情况
+## Notes & Edge Cases
 
-- 句子拆分：库会尝试智能拆分句子，但复杂的缩写或特殊标点可能导致边界不完美。可在翻译函数内做额外合并/处理。
-- 表格与文本框：支持常见的表格与文本框内容翻译，但某些复杂嵌套元素可能需要额外测试。
-- 样式丢失风险：本库在设计时尽量保留样式，但某些自定义或非常规样式在不同 Word 版本间存在差异，建议在目标 Word 中检查最终效果。
+- Sentence splitting: the library attempts to split text into sentences intelligently, but complex abbreviations or unusual punctuation may lead to imperfect boundaries. You can merge or post-process sentences inside your translation function if needed.
+- Tables and text boxes: common table and text box content is supported, but some complex nested elements may require additional testing.
+- Style loss risk: the library tries to preserve styles, but some custom or non-standard styles may behave differently across Word versions — verify the final document in the target Word environment.
 
-## 进阶用法（建议）
+## Advanced Usage (Recommendations)
 
-- 批量翻译：对多个文件进行并行/序列化处理时，请控制并发量，避免外部翻译 API 的速率限制。
-- 缓存与去重：为降低费用和提高速度，建议在翻译函数外部实现缓存（例如 Redis 或本地键值缓存）。
-- 后处理：有时需对翻译后的句子进行小范围修正（日期格式、本地化数字等），可在 `translate_fn` 返回结果后做一次后处理。
+- Batch translation: when processing multiple files in parallel or sequentially, control concurrency to avoid rate limits from external translation APIs.
+- Caching & deduplication: to reduce cost and improve speed, implement caching outside the translation function (e.g., Redis or a local key-value cache).
+- Post-processing: you may need to apply small post-processing steps (date formats, localized numbers, etc.) after translation; consider doing that after `translate_fn` returns its result.
 
-## 贡献 & 许可
+## Contributing & License
 
-欢迎 Issue 与 PR。请遵循常规贡献流程：fork -> 新分支 -> 提交 -> PR。项目默认采用 MIT 许可（或根据仓库实际许可调整）。
+Issues and PRs are welcome. Follow the usual contribution flow: fork -> branch -> commit -> PR. The project uses the MIT license by default (or adjust based on the repository's actual license).
 
-## 联系
+## Contact
 
-如需帮助或定制化支持，请在项目仓库中提交 Issue 或联系维护者。
+For help or custom support, please open an Issue in the project repository or contact the maintainers.
 
 ---
 
-如果你希望我同时生成一个示例翻译函数（例如，调用某个公共翻译 API 的简单适配器）或添加单元测试示例，我可以继续补充。 
+If you'd like, I can also add a sample translation adapter that calls a public translation API or include a small unit test example — tell me which adapter or test you'd prefer and I will add it.
